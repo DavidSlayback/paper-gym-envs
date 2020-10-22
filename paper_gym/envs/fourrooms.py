@@ -68,12 +68,6 @@ wwwwwwwwwwwww
                 avail.append(nextcell)
         return avail
 
-    # def reset(self):
-    #     state = self.rng.choice(self.init_states)
-    #     self.currentcell = self.tocell[state]
-    #     return state
-
-
     def reset(self):
         state = self.rng_init_state.choice(self.init_states)
         self.currentcell = self.tocell[state]
@@ -87,10 +81,9 @@ wwwwwwwwwwwww
         The agent can perform one of four actions,
         up, down, left or right, which have a stochastic effect.
         We consider a case in which rewards are zero on all state transitions
-        except the goal state which has a reward of +50.
+        except the goal state which has a reward of +1.
         """
 
-        reward = 0
         if self.rng.uniform() < 1/3:
             empty_cells = self.empty_around(self.currentcell)
             nextcell = empty_cells[self.rng.randint(len(empty_cells))]
@@ -102,8 +95,5 @@ wwwwwwwwwwwww
 
         state = self.tostate[self.currentcell]
 
-        if state == self.goal:
-            reward = 50
-
         done = state == self.goal
-        return np.array(state), reward, done, {}
+        return np.array(state), float(done), done, {}
