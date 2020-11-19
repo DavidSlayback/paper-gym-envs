@@ -7,7 +7,7 @@ from random import uniform
 
 #class Fourrooms(gym.Env):
 class Fourrooms(gym.Env):
-    def __init__(self,initstate_seed=0):
+    def __init__(self, initstate_seed=1234):
         layout = """\
 wwwwwwwwwwwww
 w     w     w
@@ -35,10 +35,9 @@ wwwwwwwwwwwww
 
         self.directions = [np.array((-1,0)), np.array((1,0)), np.array((0,-1)), np.array((0,1))]
 
-        self.rng = np.random.RandomState(1234)
+        self.rng = np.random.RandomState(initstate_seed)
 
         self.initstate_seed = initstate_seed
-        self.rng_init_state = np.random.RandomState(self.initstate_seed)
 
         self.tostate = {}
 
@@ -69,12 +68,15 @@ wwwwwwwwwwwww
         return avail
 
     def reset(self):
-        state = self.rng_init_state.choice(self.init_states)
+        state = self.rng.choice(self.init_states)
         self.currentcell = self.tocell[state]
         return np.array(state)
 
     def seed(self, seed=None):
-        self.rng_init_state = np.random.RandomState(seed)
+        self.rng = np.random.RandomState(seed)
+
+    def set_goal(self, goal):
+        self.goal = goal
 
     def step(self, action):
         """
@@ -83,7 +85,18 @@ wwwwwwwwwwwww
         We consider a case in which rewards are zero on all state transitions
         except the goal state which has a reward of +1.
         """
+        nextcell = tuple(self.currentcell + self.directions[action])
+        if not self.occupancy[nextcell]:
+            self.currentcell = nextcell
+            if self.rng.uniform() < 1/3.:
+                empty_cells = self.empty_around(self.currentcell)
+                self.currentcell = empty_cells[self.rng.randint(len(empty_cells))]
 
+        state = self.tostate[self.currentcell]
+        done = state == self.goal
+        return state, float(done), done, {}
+
+        """
         if self.rng.uniform() < 1/3:
             empty_cells = self.empty_around(self.currentcell)
             nextcell = empty_cells[self.rng.randint(len(empty_cells))]
@@ -97,3 +110,4 @@ wwwwwwwwwwwww
 
         done = state == self.goal
         return np.array(state), float(done), done, {}
+        """
