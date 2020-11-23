@@ -2,9 +2,108 @@ import gym
 import math
 import torch
 from gym import spaces, logger
+from gym.vector.utils import batch_space
 from gym.utils import seeding
 import numpy as np
 import os.path as path
+
+class FourRoomsTorch(gym.Env):
+    def __init__(self, initstate_seed=1234, numenvs=1, device="cuda"):
+        layout = """\
+    wwwwwwwwwwwww
+    w     w     w
+    w     w     w
+    w           w
+    w     w     w
+    w     w     w
+    ww wwww     w
+    w     www www
+    w     w     w
+    w     w     w
+    w           w
+    w     w     w
+    wwwwwwwwwwwww
+    """
+        self.envcount = numenvs
+        self.device = device
+        self.bIndex = torch.arange(numenvs, device=device)
+
+        self.occupancy = np.array([list(map(lambda c: 1 if c == 'w' else 0, line)) for line in layout.splitlines()])
+        self.grid = torch.from_numpy(self.occupancy).to(device).long()  # 13*13 grid
+
+        # Action Space: from any state the agent can perform one of the four actions; Up, Down, Left and Right
+        self.action_space = batch_space(spaces.Discrete(4), numenvs)
+
+        # Observation Space
+        self.observation_space = batch_space(spaces.Discrete(np.sum(self.occupancy == 0)), numenvs)
+        n = self.observation_space.nvec[0]
+        self.n = n
+        self.sIndex = torch.arange(numenvs, device=device)
+        self.T_sa = torch.zeros((104, 4), requires_grad=False, device=device).long()
+        self.occ_dict = dict(zip(range(n), np.argwhere(self.occupancy.flatten() == 0).squeeze()))
+        dir = np.array([(-1,0),(1,0),(0,-1),(0,1)])
+        self.rng = torch.Generator(device=device).manual_seed(initstate_seed)
+        self.initstate_seed = initstate_seed
+
+        self.tostate = {}
+
+        self.occ_dict = dict(zip(range(n),np.argwhere(self.occupancy.flatten() == 0).squeeze()))
+        # Coord -> state
+        statenum = 0
+        for i in range(13):
+            for j in range(13):
+                if self.occupancy[i, j] == 0:
+                    self.tostate[(i, j)] = statenum
+                    statenum += 1
+
+        keys = list(self.tostate.keys())
+
+        # Transition matrix
+        for i in range(13):
+            for j in range(13):
+                if (i,j) in keys:
+                    state = np.array((i,j))
+                    for a in range(4):
+                        new_state = tuple(dir[a] + state)
+                        if new_state in keys:
+                            self.T_sa[self.tostate[(i,j)], a] = self.tostate[new_state]
+                        else:
+                            self.T_sa[self.tostate[(i,j)], a] = self.tostate[(i,j)]
+
+
+        self.tocell = {v: k for k, v in self.tostate.items()}
+
+        self.set_goal(62)
+        self.reset()
+
+    def reset(self):
+        self.states = self.init_states.multinomial(self.n, generator=self.rng)
+        return self.states
+
+    def seed(self, seed=None):
+        self.rng = torch.Generator(device=self.device).manual_seed(seed)
+
+    def set_goal(self, goal):
+        self.goal = goal
+        self.init_states = list(range(self.n))
+        self.init_states.remove(self.goal)
+        self.init_states = torch.from_numpy(np.array(self.init_states)).to(self.device)
+
+    def step(self, action):
+        """
+        The agent can perform one of four actions,
+        up, down, left or right, which have a stochastic effect.
+        We consider a case in which rewards are zero on all state transitions
+        except the goal state which has a reward of +1.
+        """
+        rand_action = torch.rand(action.size(), generator=self.rng, device=self.device) < 1/3  # Check which ones get random
+        action[rand_action] = torch.randint(0, 4, action[rand_action].size(), generator=self.rng, device=self.device)  # Assign random
+        self.states = self.T_sa[self.sIndex, action]  # Transition
+        done = self.states == self.goal  # Which envs reached goal?
+        reward = done.float()  # Reward +1
+        self.states[done] = self.init_states.multinomial(self.states[done].size(0), generator=self.rng)  # Reset done environments
+        return self.states, reward, done, {}
+
 
 class Pendulum(gym.Env):
     metadata = {
@@ -323,3 +422,6 @@ class CartPole(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
+
+if __name__ == "__main__":
+    test = FourRoomsTorch(numenvs=8)
