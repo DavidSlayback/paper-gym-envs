@@ -7,6 +7,13 @@ register(
     reward_threshold=1,
 )
 
+
+register(
+    id='Torch-FourRooms-v0',
+    entry_point='paper_gym.envs:FourRoomsTorch',
+    reward_threshold=1,
+)
+
 register(
     id='Torch-CartPole-v0',
     entry_point='paper_gym.envs:CartPole',
