@@ -9,26 +9,25 @@ import os.path as path
 
 class FourRoomsTorch(gym.Env):
     def __init__(self, initstate_seed=1234, numenvs=1, device="cuda"):
-        layout = """\
-    wwwwwwwwwwwww
-    w     w     w
-    w     w     w
-    w           w
-    w     w     w
-    w     w     w
-    ww wwww     w
-    w     www www
-    w     w     w
-    w     w     w
-    w           w
-    w     w     w
-    wwwwwwwwwwwww
-    """
         self.envcount = numenvs
         self.device = device
         self.bIndex = torch.arange(numenvs, device=device)
-
-        self.occupancy = np.array([list(map(lambda c: 1 if c == 'w' else 0, line)) for line in layout.splitlines()])
+        layout = """\
+wwwwwwwwwwwww
+w     w     w
+w     w     w
+w           w
+w     w     w
+w     w     w
+ww wwww     w
+w     www www
+w     w     w
+w     w     w
+w           w
+w     w     w
+wwwwwwwwwwwww
+"""
+        self.occupancy = np.array([list(map(lambda c: 1 if c=='w' else 0, line)) for line in layout.splitlines()])
         self.grid = torch.from_numpy(self.occupancy).to(device).long()  # 13*13 grid
 
         # Action Space: from any state the agent can perform one of the four actions; Up, Down, Left and Right
@@ -69,15 +68,15 @@ class FourRoomsTorch(gym.Env):
                             self.T_sa[self.tostate[(i,j)], a] = self.tostate[new_state]
                         else:
                             self.T_sa[self.tostate[(i,j)], a] = self.tostate[(i,j)]
-
-
-        self.tocell = {v: k for k, v in self.tostate.items()}
-
+        self.max_episode_steps = 2000
         self.set_goal(62)
         self.reset()
 
     def reset(self):
-        self.states = self.init_states.multinomial(self.n, generator=self.rng)
+        self.states = self.init_states[torch.randint(0, self.n-1, size=(self.envcount,), generator=self.rng, device=self.device)]
+        self.last_states = torch.full_like(self.states, self.goal)
+        self.step_count = torch.zeros_like(self.states)
+        # self.states = self.init_states.multinomial(self.n, generator=self.rng)
         return self.states
 
     def seed(self, seed=None):
@@ -99,9 +98,12 @@ class FourRoomsTorch(gym.Env):
         rand_action = torch.rand(action.size(), generator=self.rng, device=self.device) < 1/3  # Check which ones get random
         action[rand_action] = torch.randint(0, 4, action[rand_action].size(), generator=self.rng, device=self.device)  # Assign random
         self.states = self.T_sa[self.sIndex, action]  # Transition
-        done = self.states == self.goal  # Which envs reached goal?
+        self.step_count = self.step_count + 1
+        done = self.states == self.goal# Which envs reached goal?
         reward = done.float()  # Reward +1
-        self.states[done] = self.init_states.multinomial(self.states[done].size(0), generator=self.rng)  # Reset done environments
+        done = torch.logical_or(done, self.step_count > self.max_episode_steps)  # Or time limit?
+        self.states[done] = self.init_states[torch.randint(0, self.n-1, size=self.states[done].size(), generator=self.rng, device=self.device)]  # Reset done environments
+        self.step_count[done] = 0  # Reset step counts for done environments
         return self.states, reward, done, {}
 
 
@@ -425,3 +427,7 @@ class CartPole(gym.Env):
 
 if __name__ == "__main__":
     test = FourRoomsTorch(numenvs=8)
+    test_a = torch.randint(0, 4, (8, ), device="cuda")
+    to = test.reset()
+    ta = test.step(test_a)
+    print("pass")
