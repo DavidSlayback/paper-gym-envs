@@ -31,22 +31,17 @@ wwwwwwwwwwwww
         self.grid = torch.from_numpy(self.occupancy).to(device).long()  # 13*13 grid
 
         # Action Space: from any state the agent can perform one of the four actions; Up, Down, Left and Right
-        self.action_space = batch_space(spaces.Discrete(4), numenvs)
+        self.action_space = spaces.Discrete(4)
 
         # Observation Space
-        self.observation_space = batch_space(spaces.Discrete(np.sum(self.occupancy == 0)), numenvs)
-        n = self.observation_space.nvec[0]
-        self.n = n
+        self.observation_space = spaces.Discrete(np.sum(self.occupancy == 0))
         self.sIndex = torch.arange(numenvs, device=device)
         self.T_sa = torch.zeros((104, 4), requires_grad=False, device=device).long()
-        self.occ_dict = dict(zip(range(n), np.argwhere(self.occupancy.flatten() == 0).squeeze()))
+        self.occ_dict = dict(zip(range(self.observation_space.n), np.argwhere(self.occupancy.flatten() == 0).squeeze()))
         dir = np.array([(-1,0),(1,0),(0,-1),(0,1)])
         self.rng = torch.Generator(device=device).manual_seed(initstate_seed)
         self.initstate_seed = initstate_seed
-
         self.tostate = {}
-
-        self.occ_dict = dict(zip(range(n),np.argwhere(self.occupancy.flatten() == 0).squeeze()))
         # Coord -> state
         statenum = 0
         for i in range(13):
@@ -72,21 +67,22 @@ wwwwwwwwwwwww
         self.set_goal(62)
         self.reset()
 
+    # Reset all environments
     def reset(self):
-        self.states = self.init_states[torch.randint(0, self.n-1, size=(self.envcount,), generator=self.rng, device=self.device)]
+        self.states = self.init_states[torch.randint(0, self.observation_space.n-1, size=(self.envcount,), generator=self.rng, device=self.device)]  # Reset states
         self.last_states = torch.full_like(self.states, self.goal)
-        self.step_count = torch.zeros_like(self.states)
-        # self.states = self.init_states.multinomial(self.n, generator=self.rng)
+        self.step_count = torch.zeros_like(self.states)  # Reset step counts
         return self.states
 
     def seed(self, seed=None):
         self.rng = torch.Generator(device=self.device).manual_seed(seed)
 
     def set_goal(self, goal):
-        self.goal = goal
-        self.init_states = list(range(self.n))
+        self.goal = goal  # Change goal
+        self.init_states = list(range(self.observation_space.n))  # Change possible initial states
         self.init_states.remove(self.goal)
         self.init_states = torch.from_numpy(np.array(self.init_states)).to(self.device)
+        # Reset after the fact?
 
     def step(self, action):
         """
@@ -98,11 +94,11 @@ wwwwwwwwwwwww
         rand_action = torch.rand(action.size(), generator=self.rng, device=self.device) < 1/3  # Check which ones get random
         action[rand_action] = torch.randint(0, 4, action[rand_action].size(), generator=self.rng, device=self.device)  # Assign random
         self.states = self.T_sa[self.sIndex, action]  # Transition
-        self.step_count = self.step_count + 1
-        done = self.states == self.goal# Which envs reached goal?
+        self.step_count = self.step_count + 1  # Increment step count
+        done = self.states == self.goal  # Which envs reached goal?
         reward = done.float()  # Reward +1
-        done = torch.logical_or(done, self.step_count > self.max_episode_steps)  # Or time limit?
-        self.states[done] = self.init_states[torch.randint(0, self.n-1, size=self.states[done].size(), generator=self.rng, device=self.device)]  # Reset done environments
+        done = torch.logical_or(done, self.step_count > self.max_episode_steps)  # Envs that timed out as well (no reward for them)
+        self.states[done] = self.init_states[torch.randint(0, self.observation_space.n-1, size=self.states[done].size(), generator=self.rng, device=self.device)]  # Reset done environments
         self.step_count[done] = 0  # Reset step counts for done environments
         return self.states, reward, done, {}
 
@@ -426,8 +422,9 @@ class CartPole(gym.Env):
             self.viewer = None
 
 if __name__ == "__main__":
-    test = FourRoomsTorch(numenvs=8)
-    test_a = torch.randint(0, 4, (8, ), device="cuda")
-    to = test.reset()
-    ta = test.step(test_a)
-    print("pass")
+    test = FourRoomsTorch(numenvs=8, device="cuda")
+    for _ in range(5000):
+        test_a = torch.randint(0, 4, (8, ), device="cuda")
+        to = test.reset()
+        ta = test.step(test_a)
+        # print("pass")
