@@ -77,12 +77,22 @@ wwwwwwwwwwwww
     def seed(self, seed=None):
         self.rng = torch.Generator(device=self.device).manual_seed(seed)
 
+    # Change the goal of all environments to a single different goal
     def set_goal(self, goal):
         self.goal = goal  # Change goal
         self.init_states = list(range(self.observation_space.n))  # Change possible initial states
         self.init_states.remove(self.goal)
         self.init_states = torch.from_numpy(np.array(self.init_states)).to(self.device)
         # Reset after the fact?
+
+    # Change the goal of each environment to torch tensor of specified goals
+    def set_goals(self, goals):
+        assert goals.size(0) == self.envcount
+        self.goal = goals  # Change goal
+        self.init_states = torch.zeros((self.envcount, self.observation_space.n))
+        self.init_states = list(range(self.observation_space.n))  # Change possible initial states
+        self.init_states.remove(self.goal)
+        self.init_states = torch.from_numpy(np.array(self.init_states)).to(self.device)
 
     def step(self, action):
         """
@@ -98,6 +108,7 @@ wwwwwwwwwwwww
         done = self.states == self.goal  # Which envs reached goal?
         reward = done.float()  # Reward +1
         done = torch.logical_or(done, self.step_count > self.max_episode_steps)  # Envs that timed out as well (no reward for them)
+        if torch.any(done): print("Done")
         self.states[done] = self.init_states[torch.randint(0, self.observation_space.n-1, size=self.states[done].size(), generator=self.rng, device=self.device)]  # Reset done environments
         self.step_count[done] = 0  # Reset step counts for done environments
         return self.states, reward, done, {}
@@ -425,6 +436,5 @@ if __name__ == "__main__":
     test = FourRoomsTorch(numenvs=8, device="cuda")
     for _ in range(5000):
         test_a = torch.randint(0, 4, (8, ), device="cuda")
-        to = test.reset()
         ta = test.step(test_a)
         # print("pass")
