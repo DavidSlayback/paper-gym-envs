@@ -8,10 +8,12 @@ import numpy as np
 import os.path as path
 
 class FourRoomsTorch(gym.Env):
-    def __init__(self, initstate_seed=1234, numenvs=1, device="cuda"):
+    def __init__(self, initstate_seed=1234, numenvs=1, device="cuda", rand_action_prob=(1/3.), rand_goal=False, goal_reward=1., step_reward=0.):
         self.envcount = numenvs
         self.device = device
         self.bIndex = torch.arange(numenvs, device=device)
+        self.goal_reward = goal_reward
+        self.step_reward = step_reward
         layout = """\
 wwwwwwwwwwwww
 w     w     w
@@ -32,6 +34,7 @@ wwwwwwwwwwwww
 
         # Action Space: from any state the agent can perform one of the four actions; Up, Down, Left and Right
         self.action_space = spaces.Discrete(4)
+        self.rand_action_prob = rand_action_prob
 
         # Observation Space
         self.observation_space = spaces.Discrete(np.sum(self.occupancy == 0))
@@ -64,7 +67,7 @@ wwwwwwwwwwwww
                         else:
                             self.T_sa[self.tostate[(i,j)], a] = self.tostate[(i,j)]
         self.max_episode_steps = 2000
-        self.set_goal(62)
+        self.set_goal(62) if not rand_goal else self.set_goal(np.random.randint(0, self.observation_space.n))
         self.reset()
 
     # Reset all environments
@@ -101,12 +104,12 @@ wwwwwwwwwwwww
         We consider a case in which rewards are zero on all state transitions
         except the goal state which has a reward of +1.
         """
-        rand_action = torch.rand(action.size(), generator=self.rng, device=self.device) < 1/3  # Check which ones get random
+        rand_action = torch.rand(action.size(), generator=self.rng, device=self.device) < self.rand_action_prob  # Check which ones get random
         action[rand_action] = torch.randint(0, 4, action[rand_action].size(), generator=self.rng, device=self.device)  # Assign random
         self.states = self.T_sa[self.sIndex, action]  # Transition
         self.step_count = self.step_count + 1  # Increment step count
         done = self.states == self.goal  # Which envs reached goal?
-        reward = done.float()  # Reward +1
+        reward = done.float() * self.goal_reward + (~done).float() * self.step_reward  # Reward for goal or for step
         done = torch.logical_or(done, self.step_count > self.max_episode_steps)  # Envs that timed out as well (no reward for them)
         if torch.any(done): print("Done")
         self.states[done] = self.init_states[torch.randint(0, self.observation_space.n-1, size=self.states[done].size(), generator=self.rng, device=self.device)]  # Reset done environments

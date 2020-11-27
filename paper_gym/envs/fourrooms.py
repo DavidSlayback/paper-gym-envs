@@ -7,7 +7,7 @@ from random import uniform
 
 #class Fourrooms(gym.Env):
 class Fourrooms(gym.Env):
-    def __init__(self, initstate_seed=1234):
+    def __init__(self, initstate_seed=1234, rand_action_prob=(1/3.), goal_reward=1., step_reward=0.):
         layout = """\
 wwwwwwwwwwwww
 w     w     w
@@ -26,9 +26,12 @@ wwwwwwwwwwwww
 
 
         self.occupancy = np.array([list(map(lambda c: 1 if c=='w' else 0, line)) for line in layout.splitlines()])
+        self.goal_reward = goal_reward
+        self.step_reward = step_reward
 
         # Action Space: from any state the agent can perform one of the four actions; Up, Down, Left and Right
         self.action_space = spaces.Discrete(4)
+        self.rand_action_prob = rand_action_prob
 
         # Observation Space
         self.observation_space = spaces.Discrete(np.sum(self.occupancy == 0))
@@ -88,12 +91,13 @@ wwwwwwwwwwwww
         nextcell = tuple(self.currentcell + self.directions[action])
         if not self.occupancy[nextcell]:
             self.currentcell = nextcell
-            if self.rng.uniform() < 1/3.:
+            if self.rng.uniform() < self.rand_action_prob:
                 empty_cells = self.empty_around(self.currentcell)
                 self.currentcell = empty_cells[self.rng.randint(len(empty_cells))]
 
         state = self.tostate[self.currentcell]
         done = state == self.goal
+        reward = self.goal_reward if done else self.step_reward
         return state, float(done), done, {}
 
         """
