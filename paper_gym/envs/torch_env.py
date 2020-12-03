@@ -2,10 +2,44 @@ import gym
 import math
 import torch
 from gym import spaces, logger
-from gym.vector.utils import batch_space
 from gym.utils import seeding
 import numpy as np
 import os.path as path
+import time
+from collections import deque
+
+class RecordEpisodeStatisticsTorch(gym.Wrapper):
+    def __init__(self, env, deque_size=100):
+        super(RecordEpisodeStatisticsTorch, self).__init__(env)
+        self.envcount = env.envcount
+        self.device = env.device
+        self.t0 = np.full(self.envcount, time.time())  # TODO: use perf_counter when gym removes Python 2 support
+        self.episode_returns = torch.zeros(self.envcount, device=self.device)
+        self.episode_lengths = torch.zeros(self.envcount, device=self.device).long()
+        self.return_queue = deque(maxlen=deque_size)
+        self.length_queue = deque(maxlen=deque_size)
+
+    def reset(self, **kwargs):
+        observation = super(RecordEpisodeStatisticsTorch, self).reset(**kwargs)
+        self.episode_returns = torch.zeros(self.envcount, device=self.device)
+        self.episode_lengths = torch.zeros(self.envcount, device=self.device).long()
+        return observation
+
+    def step(self, action):
+        observations, rewards, dones, infos = super(RecordEpisodeStatisticsTorch, self).step(action)
+        self.episode_returns += rewards
+        self.episode_lengths += 1
+        if torch.any(dones):
+            rs = self.episode_returns.data.cpu().numpy()
+            ls = self.episode_lengths.data.cpu().numpy()
+            ts = np.round(time.time() - self.t0, 6)
+            for idx in np.where(dones.data.cpu().numpy())[0]:
+                infos[idx]['episode'] = {'r': rs[idx],'l': ls[idx],'t': ts[idx]}
+                self.return_queue.append(rs)
+                self.length_queue.append(ls)
+            self.episode_returns[dones] = 0.0
+            self.episode_lengths[dones] = 0
+        return observations, rewards, dones, infos
 
 class FourRoomsTorch(gym.Env):
     def __init__(self, initstate_seed=1234, numenvs=1, device="cuda", rand_action_prob=(1/3.), rand_goal=False, goal_reward=1., step_reward=0.):
@@ -85,7 +119,7 @@ wwwwwwwwwwwww
         self.goal = goal  # Change goal
         self.init_states = list(range(self.observation_space.n))  # Change possible initial states
         self.init_states.remove(self.goal)
-        self.init_states = torch.from_numpy(np.array(self.init_states)).to(self.device)
+        self.init_states = torch.from_numpy(np.array(self.init_states)).long().to(self.device)
         # Reset after the fact?
 
     # Change the goal of each environment to torch tensor of specified goals
@@ -114,7 +148,7 @@ wwwwwwwwwwwww
         if torch.any(done): print("Done")
         self.states[done] = self.init_states[torch.randint(0, self.observation_space.n-1, size=self.states[done].size(), generator=self.rng, device=self.device)]  # Reset done environments
         self.step_count[done] = 0  # Reset step counts for done environments
-        return self.states, reward, done, {}
+        return self.states, reward, done, [{} for _ in range(self.envcount)]
 
 
 class Pendulum(gym.Env):
@@ -437,6 +471,7 @@ class CartPole(gym.Env):
 
 if __name__ == "__main__":
     test = FourRoomsTorch(numenvs=8, device="cuda")
+    test = RecordEpisodeStatisticsTorch(test)
     for _ in range(5000):
         test_a = torch.randint(0, 4, (8, ), device="cuda")
         ta = test.step(test_a)
