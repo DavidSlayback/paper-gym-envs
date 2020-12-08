@@ -27,3 +27,21 @@ register(
     max_episode_steps=2000,
     reward_threshold=1,
 )
+register(
+    id='HalfCheetah-Directional-v0',
+    entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv_Directional',
+    max_episode_steps=200,
+)
+
+register(
+    id='HalfCheetah-Velocity-v0',
+    entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv_Velocity',
+    max_episode_steps=200,
+)
+
+register(
+    id='HalfCheetahPyBullet-v0',
+    entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv',
+    max_episode_steps=200,
+)
+

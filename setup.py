@@ -8,5 +8,6 @@ setup(name='paper_gym',
       install_requires=['gym',
                         'numpy',
                         'torch',
-                        'numba']  # And any other dependencies we need
+                        'numba',
+                        'pybullet']  # And any other dependencies we need
 )  
