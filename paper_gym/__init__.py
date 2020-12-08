@@ -27,6 +27,7 @@ register(
     max_episode_steps=2000,
     reward_threshold=1,
 )
+"""
 register(
     id='HalfCheetah-Directional-v0',
     entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv_Directional',
@@ -44,4 +45,5 @@ register(
     entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv',
     max_episode_steps=200,
 )
+"""
 
