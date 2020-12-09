@@ -1,10 +1,13 @@
-from pybulletgym.envs.mujoco.robots.robot_bases import MJCFBasedRobot
-from pybulletgym.envs.mujoco.envs.env_bases import BaseBulletEnv
+#from pybulletgym.envs.mujoco.robots.robot_bases import MJCFBasedRobot
+#from pybulletgym.envs.mujoco.envs.env_bases import BaseBulletEnv
+from pybullet_envs.robot_bases import MJCFBasedRobot
+from pybullet_envs.env_bases import MJCFBaseBulletEnv
+from gym.spaces import Box
 import numpy as np
 
 class TMazePointMass(MJCFBasedRobot):
     def __init__(self):
-        MJCFBasedRobot.__init__(self, 'twod_tmaze_1target.xml', 'particle', action_dim=1, obs_dim=2)
+        MJCFBasedRobot.__init__(self, 'twod_tmaze_1target.xml', 'particle', action_dim=2, obs_dim=2)
 
     def robot_specific_reset(self, bullet_client):
         self._p = bullet_client
@@ -49,6 +52,10 @@ class TMazePointMass(MJCFBasedRobot):
         return np.array([
             qpos,   # self.sim.data.qpos
             qvel])  # self.sim.data.qvel
-class TMazeEnvironment(BaseBulletEnv):
-    def __init__(self):
+
+class TMazeEnvironment(MJCFBaseBulletEnv):
+    def __init__(self, model_path, frame_skip, xbounds, ybounds):
+        super().__init__()
+        assert isinstance(self.observation_space, Box)
+        assert self.observation_space.shape == (2,)
         pass

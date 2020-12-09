@@ -56,3 +56,14 @@ class HalfCheetahMuJoCoEnv_Velocity(HalfCheetahMuJoCoEnv):
     def transfer(self, target_velocity=0.):
         self.goal_velocity = target_velocity
 
+if __name__ == "__main__":
+    e1 = HalfCheetahMuJoCoEnv()
+    e2 = HalfCheetahMuJoCoEnv_Velocity()
+    e3= HalfCheetahMuJoCoEnv_Directional()
+    e1.reset(); e2.reset(); e3.reset()
+    for i in range(1000):
+        a = e1.action_space.sample()
+        _, r1, d, _ = e1.step(a)
+        _, r2, d, _ = e2.step(a)
+        _, r3, d, _ = e3.step(a)
+        print("{}_{}_{}".format(r1, r2, r3))
