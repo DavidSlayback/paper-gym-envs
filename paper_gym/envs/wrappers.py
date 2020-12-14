@@ -34,6 +34,12 @@ class NormalizedActionWrapper(gym.ActionWrapper):
         return action
 
 
+class ClipActionsWrapper(gym.ActionWrapper):
+    def step(self, action):
+        action = np.nan_to_num(action)
+        action = np.clip(action, self.action_space.low, self.action_space.high)
+        return self.env.step(action)
+
 
 def mujoco_wrapper(entry_point, **kwargs):
     # Load the environment from its entry point

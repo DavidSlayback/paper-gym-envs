@@ -31,19 +31,19 @@ register(
 register(
     id='HalfCheetah-Directional-v0',
     entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv_Directional',
-    max_episode_steps=200,
+    max_episode_steps=1000,
 )
 
 register(
     id='HalfCheetah-Velocity-v0',
     entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv_Velocity',
-    max_episode_steps=200,
+    max_episode_steps=1000,
 )
 
 register(
     id='HalfCheetahPGym-v0',
     entry_point='paper_gym.envs:HalfCheetahMuJoCoEnv',
-    max_episode_steps=200,
+    max_episode_steps=1000,
 )
 
 
