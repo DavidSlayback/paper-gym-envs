@@ -4,7 +4,7 @@ import numpy as np
 
 # Half cheetah with reversible direction
 class HalfCheetahMuJoCoEnv_Directional(HalfCheetahMuJoCoEnv):
-    def __init__(self, dir=1):
+    def __init__(self, dir=1.):
         super().__init__()
         self.goal_dir = dir
 
@@ -26,8 +26,9 @@ class HalfCheetahMuJoCoEnv_Directional(HalfCheetahMuJoCoEnv):
 
         return state, sum(self.rewards), bool(done), {}
 
-    def transfer(self):
-        self.goal_dir = 1 if self.goal_dir == -1 else -1
+    def transfer(self, goal_dir=0.):
+        self.goal_dir = 1. if self.goal_dir == -1 else -1.
+        return self.goal_dir
 
 # half cheetah with target velocity
 class HalfCheetahMuJoCoEnv_Velocity(HalfCheetahMuJoCoEnv):
@@ -55,6 +56,7 @@ class HalfCheetahMuJoCoEnv_Velocity(HalfCheetahMuJoCoEnv):
 
     def transfer(self, target_velocity=0.):
         self.goal_velocity = target_velocity
+        return target_velocity
 
 if __name__ == "__main__":
     e1 = HalfCheetahMuJoCoEnv()
