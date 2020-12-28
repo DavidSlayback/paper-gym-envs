@@ -46,4 +46,17 @@ register(
     max_episode_steps=1000,
 )
 
+register(
+    id='TMaze-OneGoal-v0',
+    entry_point='paper_gym.envs:TwoDTMazeEnv',
+    max_episode_steps=500,
+)
+
+register(
+    id='TMaze-TwoGoal-v0',
+    entry_point='paper_gym.envs:MultiGoalTwoDTMazeEnv',
+    max_episode_steps=500,
+)
+
+
 

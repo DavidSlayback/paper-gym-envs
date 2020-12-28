@@ -1,3 +1,4 @@
 from paper_gym.envs.fourrooms import Fourrooms, FourRoomsTorch
 from paper_gym.envs.torch_env import CartPole, Pendulum
 from paper_gym.envs.pybullet_halfcheetah_transfer import HalfCheetahMuJoCoEnv_Directional, HalfCheetahMuJoCoEnv, HalfCheetahMuJoCoEnv_Velocity
+from paper_gym.envs.pybullet_tmaze import TwoDTMazeEnv, MultiGoalTwoDTMazeEnv
