@@ -281,7 +281,7 @@ wwwwwwwwwwwww
 
 from collections import deque
 import time
-class FourRoomsEpisodeRecorder(gym.Wrapper):
+class FourRoomsEpisodeRecorderTorch(gym.Wrapper):
     def __init__(self, env, deque_size=100):
         super().__init__(env)
         self.t0 = np.full(env.envcount, time.time())  # TODO: use perf_counter when gym removes Python 2 support
