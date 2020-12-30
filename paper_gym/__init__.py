@@ -58,5 +58,10 @@ register(
     max_episode_steps=500,
 )
 
+register(
+    id='MiniWorld-OneRoomTransfer-v0',
+    entry_point='paper_gym.envs:OneRoomTransfer'
+)
+
 
 
