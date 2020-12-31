@@ -14,7 +14,7 @@ def get_asset_xml(xml_name):
     return os.path.join(os.path.join(os.path.dirname(__file__), 'env_assets'), xml_name)
 
 class PointMazeRobot(MJCFBasedRobot):
-    def __init__(self, model_xml, robot_name='particle', action_dim=2, obs_dim=2, self_collision=True, power=1.):
+    def __init__(self, model_xml, robot_name='particle', action_dim=2, obs_dim=2, self_collision=True, power=.01):
         super().__init__(model_xml, robot_name, action_dim, obs_dim, self_collision)
         self.power = power
 
@@ -47,7 +47,7 @@ class TwoDTMazeEnv(MJCFBaseBulletEnv):
         assert self.observation_space.shape == (2,)
 
     def create_single_player_scene(self, bullet_client):
-        return SinglePlayerStadiumScene(bullet_client, gravity=0, timestep=0.01, frame_skip=2)  # Frameskip shown was 2, no gravity, .01 timestep
+        return SinglePlayerStadiumScene(bullet_client, gravity=1., timestep=0.01, frame_skip=2)  # Frameskip shown was 2, no gravity, .01 timestep
 
     # Additionally save goal position
     def reset(self):
@@ -79,7 +79,7 @@ class MultiGoalTwoDTMazeEnv(MJCFBaseBulletEnv):
         assert self.observation_space.shape == (2,)
 
     def create_single_player_scene(self, bullet_client):
-        return SinglePlayerStadiumScene(bullet_client, gravity=0, timestep=0.01, frame_skip=2)  # Frameskip shown was 2, no gravity, .01 timestep
+        return SinglePlayerStadiumScene(bullet_client, gravity=1., timestep=0.01, frame_skip=2)  # Frameskip shown was 2, no gravity, .01 timestep
 
     # Additionally save goal position(s)
     def reset(self):
@@ -125,15 +125,18 @@ class MultiGoalTwoDTMazeEnv(MJCFBaseBulletEnv):
 
 
 if __name__ == "__main__":
+    import time
     #xml = get_asset_xml('twod_tmaze_1target.xml')
     #robot = PointMazeRobot(xml)
     # env = MJCFBaseBulletEnv(robot)
-    e1 = TwoDTMazeEnv()
-    e2 = MultiGoalTwoDTMazeEnv()
-    e1.reset(); e2.reset();
+    # e1 = TwoDTMazeEnv(render=True)
+    e2 = MultiGoalTwoDTMazeEnv(render=True)
+    e2.reset()
+    # e1.reset(); # e2.reset();
     for i in range(1000):
-        a = e1.action_space.sample()
-        s, r1, d, _ = e1.step(a)
-        print("{}".format(s))
-        _, r2, d, _ = e2.step(a)
+        time.sleep(0.01)
+        a = e2.action_space.sample()
+        s, r1, d, _ = e2.step(a)
+        if d: print("done")
+        # _, r2, d, _ = e2.step(a)
         # print("{}_{}".format(r1, r2))
