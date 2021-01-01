@@ -63,5 +63,9 @@ register(
     entry_point='paper_gym.envs:OneRoomTransfer'
 )
 
+register(
+    id='AntGather-8x8-v0',
+    entry_point='paper_gym.envs:GatherEnv'
+)
 
 

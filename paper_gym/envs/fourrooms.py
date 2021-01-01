@@ -318,7 +318,7 @@ class FourRoomsEpisodeRecorderTorch(gym.Wrapper):
 
 if __name__ == "__main__":
     n = 8
-    testTorchEnv = FourRoomsEpisodeRecorder(FourRoomsTorch(numenvs=n))
+    testTorchEnv = FourRoomsTorch(numenvs=n)
     for t in range(20000):
         s, r, d, info = testTorchEnv.step(torch.randint(4, (n,), device='cuda'))
         if torch.any(d):
