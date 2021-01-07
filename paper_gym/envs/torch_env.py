@@ -359,11 +359,3 @@ class CartPole(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
-
-if __name__ == "__main__":
-    test = FourRoomsTorch(numenvs=8, device="cuda")
-    test = RecordEpisodeStatisticsTorch(test)
-    for _ in range(5000):
-        test_a = torch.randint(0, 4, (8, ), device="cuda")
-        ta = test.step(test_a)
-        # print("pass")
